@@ -11,7 +11,15 @@ let s = new SequenceAsyncFunc(console.log,1000);
 ### 异步函数示例
 ```
 let qcc = new QccService();
-let queryInfo = new SequenceAsyncFunc(qcc.queryInfo,500);
+let queryInfo = new SequenceAsyncFunc(qcc.queryInfo,500, {
+            pre: (name) => {
+                appendLogger('企查查：' + name);
+            },
+            post: (info, name) => {
+                let tableInfo = Object.keys(info).map(v => `<span style="padding-left:20px;"><strong>` + v + `</strong>：` + info[v] + `</span>`).join('');
+                appendLogger(tableInfo);
+            }
+        });
 
 "A公司|B有限公司|C有限公司|D有限公司".split('|').forEach(async v=>{
   let result = await queryInfo(v);
