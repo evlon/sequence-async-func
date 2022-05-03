@@ -1,15 +1,18 @@
 class SequenceAsyncFunc {
-    constructor(fn, timeSpan) {
+    constructor(fn, timeSpan, options) {
+        options = options || {}
+        this.pre = options.pre || (() => { });
+        this.post = options.post || (() => { });
         this.fn = fn;
         this.timeSpan = timeSpan;
         this.queue = [];
         this.executer = false;
         let objThis = this;
-        return function() {
+        return function () {
             let args = arguments;
             let objCaller = this;
 
-            return new Promise((resolve,reject)=>{
+            return new Promise((resolve, reject) => {
                 objThis.queue.push({
                     obj: objCaller,
                     args,
@@ -26,8 +29,8 @@ class SequenceAsyncFunc {
     }
 
     async sleep(ms) {
-        return new Promise((resolve,reject)=>{
-            setTimeout(()=>resolve(),this.timeSpan);
+        return new Promise((resolve, reject) => {
+            setTimeout(() => resolve(), this.timeSpan);
         });
     }
 
@@ -38,11 +41,15 @@ class SequenceAsyncFunc {
             while (this.queue.length > 0) {
                 let item = this.queue.shift();
                 try {
+                    await this.pre.apply(item.obj, item.args);
                     let ret = await this.fn.apply(item.obj, item.args);
                     item.resolve(ret);
+                    let args = [ret].concat(Array.prototype.slice.call(item.args, 0, item.args.length));
+                    await this.post.apply(item.obj, args)
                 } catch (e) {
                     item.reject(e);
                 } finally {
+
                     await this.sleep(this.timeSpan);
                 }
             }
